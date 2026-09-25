@@ -45,7 +45,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--focus);outline-
 .add input{flex:1;min-width:0;font:inherit;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 .add button{font:inherit;font-weight:600;padding:0 20px;border-radius:14px;border:0;background:var(--ink);color:var(--bg);cursor:pointer}
 .empty{color:var(--mute);padding:18px 0}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.best{display:block;color:var(--mute);font-size:.78rem;margin-top:2px}
+#confetti-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+.milestone{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);background:var(--ink);color:var(--bg);padding:14px 22px;border-radius:16px;font-weight:600;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;max-width:88%;text-align:center;z-index:51}
+.milestone.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}#confetti-canvas{display:none}}
 </style>
 </head>
 <body>
@@ -61,6 +65,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--focus);outline-
     <button id="addBtn">Add habit</button>
   </div>
 </main>
+<canvas id="confetti-canvas" aria-hidden="true"></canvas>
+<div class="milestone" id="milestone" role="status" aria-live="polite"></div>
 <script>
 var KEY = "streaks-v1", habits = [], armed = null;
 try { habits = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { habits = []; }
@@ -93,6 +99,48 @@ function plant(s) {
     x += '<circle cx="30" cy="' + top + '" r="5" fill="var(--ink)"/>';
   }
   return x + '</svg>';
+}
+var MILESTONES = [7, 30, 100];
+var canvas = document.getElementById("confetti-canvas"), ctx = canvas ? canvas.getContext("2d") : null;
+function sizeCanvas() { if (canvas) { canvas.width = innerWidth; canvas.height = innerHeight; } }
+sizeCanvas();
+window.addEventListener("resize", sizeCanvas);
+var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function confettiBurst(x, y) {
+  if (!ctx || reduceMotion) return;
+  var colors = ["#f2b632", "#2f7f79", "#1b2a3a", "#e0637a"], parts = [];
+  for (var i = 0; i < 26; i++) {
+    var a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 4;
+    parts.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2, g: 0.15, life: 1, size: 3 + Math.random() * 3, color: colors[i % colors.length] });
+  }
+  var start = null;
+  function frame(t) {
+    if (!start) start = t;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var alive = false;
+    parts.forEach(function (p) {
+      if (p.life <= 0) return;
+      p.x += p.vx; p.y += p.vy; p.vy += p.g; p.life -= 0.018;
+      if (p.life > 0) {
+        alive = true;
+        ctx.globalAlpha = Math.max(p.life, 0);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      }
+    });
+    ctx.globalAlpha = 1;
+    if (alive) requestAnimationFrame(frame); else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  requestAnimationFrame(frame);
+}
+var milestoneTimer = null;
+function showMilestone(text) {
+  var m = document.getElementById("milestone");
+  if (!m) return;
+  m.textContent = text;
+  m.classList.add("show");
+  clearTimeout(milestoneTimer);
+  milestoneTimer = setTimeout(function () { m.classList.remove("show"); }, 2600);
 }
 function render() {
   var today = keyOf(daysAgo(0));
@@ -128,6 +176,12 @@ function render() {
     st.className = "streak" + (s ? "" : " zero");
     st.textContent = s ? s + "-day streak" : "No streak yet";
     top.appendChild(nm); top.appendChild(st); card.appendChild(top);
+    var best = Math.max(h.best || 0, s);
+    if (best > 0) {
+      var bl = document.createElement("span"); bl.className = "best";
+      bl.textContent = "Best: " + best + (best === 1 ? " day" : " days");
+      card.appendChild(bl);
+    }
     var week = document.createElement("div"); week.className = "week";
     for (var i = 6; i >= 0; i--) {
       var d = daysAgo(i), k = keyOf(d);
@@ -138,7 +192,19 @@ function render() {
       var dot = document.createElement("span"); dot.className = "dot";
       var lab = document.createElement("span"); lab.textContent = i === 0 ? "Today" : d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 3);
       b.appendChild(dot); b.appendChild(lab);
-      b.onclick = (function (h, k) { return function () { if (h.days[k]) delete h.days[k]; else h.days[k] = 1; save(); render(); }; })(h, k);
+      b.onclick = (function (h, k, btn) { return function () {
+        var wasDone = !!h.days[k];
+        if (wasDone) { delete h.days[k]; }
+        else {
+          h.days[k] = 1;
+          var rect = btn.getBoundingClientRect();
+          confettiBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+          var s = streak(h);
+          h.best = Math.max(h.best || 0, s);
+          if (MILESTONES.indexOf(s) !== -1) showMilestone(h.name + ": " + s + "-day streak! Keep it up.");
+        }
+        save(); render();
+      }; })(h, k, b);
       week.appendChild(b);
     }
     card.appendChild(week);
