@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Streaks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e8eef2;--card:#f6f9fb;--ink:#1b2a3a;--mute:#5d6e7e;--line:#c9d5de;--on:#f2b632;--on-ink:#1b2a3a;--focus:#2f7f79;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131c26;--card:#1b2733;--ink:#e8eef2;--mute:#8fa1b1;--line:#2c3b4a;--focus:#5cc0b8}}
+:root[data-theme="dark"]{--bg:#131c26;--card:#1b2733;--ink:#e8eef2;--mute:#8fa1b1;--line:#2c3b4a;--focus:#5cc0b8}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+main{max-width:520px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:2.4rem;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1}
+.date{color:var(--mute);margin:6px 0 0}
+.summary{margin:22px 0 14px;font-weight:600;font-size:1.05rem}
+.bar{height:8px;background:var(--line);border-radius:8px;overflow:hidden;margin-bottom:22px}
+.bar i{display:block;height:100%;width:0;background:var(--on);transition:width .3s}
+.garden{display:flex;gap:10px;overflow-x:auto;margin:0 -18px 20px;padding:0 18px 4px;scrollbar-width:none}
+.garden:empty{display:none}
+.plot{flex:0 0 112px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 8px 10px;text-align:center}
+.plot svg{width:60px;height:80px;display:block;margin:0 auto 6px}
+.plot b{display:block;font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plot small{display:block;color:var(--mute);font-size:.72rem;line-height:1.3;margin-top:2px}
+.habit{background:var(--card);border-radius:18px;padding:16px 16px 12px;margin-bottom:12px;border:1px solid var(--line)}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.name{font-weight:600;font-size:1.15rem;overflow-wrap:anywhere}
+.streak{font-weight:800;font-size:1.05rem;white-space:nowrap}
+.streak.zero{color:var(--mute);font-weight:400}
+.week{display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px}
+.day{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:.75rem;color:var(--mute);background:none;border:0;padding:0;font-family:inherit;cursor:pointer}
+.dot{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:.9rem;font-weight:800;color:var(--on-ink);transition:background .15s,border-color .15s}
+.day.today .dot{width:46px;height:46px;border-color:var(--ink)}
+.day.today{color:var(--ink);font-weight:600}
+.day.done .dot{background:var(--on);border-color:var(--on)}
+.day.done .dot::after{content:"✓"}
+button:focus-visible,input:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.del{background:none;border:0;color:var(--mute);font:inherit;font-size:.8rem;margin-top:10px;padding:4px 0;cursor:pointer}
+.del.sure{color:#c0392b;font-weight:600}
+.add{display:flex;gap:8px;margin-top:22px}
+.add input{flex:1;min-width:0;font:inherit;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.add button{font:inherit;font-weight:600;padding:0 20px;border-radius:14px;border:0;background:var(--ink);color:var(--bg);cursor:pointer}
+:root[data-genre="space"]{--bg:#0b0f1f;--card:#161b30;--ink:#e8ecff;--mute:#8890b8;--line:#2b3155;--on:#7c5cff;--on-ink:#0b0f1f;--focus:#5cc0ff}
+:root[data-genre="ocean"]{--bg:#e3f2f3;--card:#f2fbfb;--ink:#0d3b3e;--mute:#4f8489;--line:#bfe3e5;--on:#17a2b8;--on-ink:#ffffff;--focus:#0d3b3e}
+@media (prefers-color-scheme:dark){:root[data-genre="ocean"]:not([data-theme="light"]){--bg:#08272b;--card:#0f363b;--ink:#dff5f6;--mute:#7fb6ba;--line:#1c4a4f;--on:#2ec4dd;--on-ink:#08272b;--focus:#5cc0ff}}
+:root[data-genre="sunset"]{--bg:#fdeee3;--card:#fff6ef;--ink:#3a1f2b;--mute:#9c6b6f;--line:#f3d5c4;--on:#f2673f;--on-ink:#ffffff;--focus:#c0466b}
+@media (prefers-color-scheme:dark){:root[data-genre="sunset"]:not([data-theme="light"]){--bg:#2a1420;--card:#3a1c2b;--ink:#ffe8de;--mute:#c48c93;--line:#4d2436;--on:#ff8a5b;--on-ink:#2a1420;--focus:#ffb37a}}
+.genres{display:flex;gap:8px;overflow-x:auto;margin:14px -18px 4px;padding:0 18px 4px;scrollbar-width:none}
+.genre-btn{flex:0 0 auto;font:inherit;font-size:.8rem;font-weight:600;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--mute);cursor:pointer}
+.genre-btn.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.hero{display:flex;align-items:center;gap:14px;margin-top:16px}
+.avatar{width:64px;height:88px;flex:0 0 auto}
+.sound-btn{margin-left:auto;flex:0 0 auto;font:inherit;font-size:.8rem;font-weight:600;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;white-space:nowrap}
+.best{display:block;color:var(--mute);font-size:.78rem;margin-top:2px}
+#confetti-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+.milestone{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);background:var(--ink);color:var(--bg);padding:14px 22px;border-radius:16px;font-weight:600;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;max-width:88%;text-align:center;z-index:51}
+.milestone.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}#confetti-canvas{display:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Streaks</h1>
+  <div class="genres" id="genres" role="tablist" aria-label="Choose a look"></div>
+  <div class="hero">
+    <div class="avatar" id="avatar" aria-hidden="true"></div>
+    <button class="sound-btn" id="soundBtn">🔈 Music off</button>
+  </div>
+  <p class="date" id="date"></p>
+  <p class="summary" id="summary"></p>
+  <div class="bar"><i id="fill"></i></div>
+  <div class="garden" id="garden" aria-label="Your garden: one plant per habit"></div>
+  <div id="list"></div>
+  <div class="add">
+    <input id="new" type="text" maxlength="60" placeholder="New habit, e.g. Read 20 pages" aria-label="New habit name">
+    <button id="addBtn">Add habit</button>
+  </div>
+</main>
+<canvas id="confetti-canvas" aria-hidden="true"></canvas>
+<div class="milestone" id="milestone" role="status" aria-live="polite"></div>
+<script>
+var KEY = "streaks-v1", habits = [], armed = null;
+try { habits = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { habits = []; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(habits)); } catch (e) {} }
+function keyOf(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function daysAgo(n) { var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return d; }
+function streak(h) {
+  var n = 0, i = h.days[keyOf(daysAgo(0))] ? 0 : 1;
+  while (h.days[keyOf(daysAgo(i))]) { n++; i++; }
+  return n;
+}
+var STAGES = [1, 3, 7, 14], WORDS = ["sprout", "grow", "bud", "bloom"], NAMES = ["Seed", "Sprout", "Growing", "Budding", "In bloom"];
+function stageOf(s) { return s >= 14 ? 4 : s >= 7 ? 3 : s >= 3 ? 2 : s >= 1 ? 1 : 0; }
+function plant(s) {
+  var st = stageOf(s), top = [60, 46, 34, 26, 20][st], leaf = "var(--focus)";
+  var x = '<svg viewBox="0 0 60 80" aria-hidden="true"><polygon points="14,60 46,60 41,78 19,78" fill="var(--ink)" opacity=".85"/>';
+  if (st === 0) return x + '<ellipse cx="30" cy="59" rx="7" ry="2.5" fill="var(--mute)"/></svg>';
+  x += '<line x1="30" y1="60" x2="30" y2="' + top + '" stroke="' + leaf + '" stroke-width="3" stroke-linecap="round"/>';
+  if (st === 1) x += '<ellipse cx="24" cy="52" rx="6" ry="3" fill="' + leaf + '" transform="rotate(-30 24 52)"/><ellipse cx="36" cy="52" rx="6" ry="3" fill="' + leaf + '" transform="rotate(30 36 52)"/>';
+  else {
+    var ys = st === 2 ? [50, 40] : [52, 42, 34];
+    ys.forEach(function (y, i) {
+      var r = i % 2 ? 1 : -1;
+      x += '<ellipse cx="' + (30 + r * 8) + '" cy="' + y + '" rx="8" ry="3.5" fill="' + leaf + '" transform="rotate(' + (r * 30) + ' ' + (30 + r * 8) + ' ' + y + ')"/>';
+    });
+  }
+  if (st === 3) x += '<circle cx="30" cy="' + top + '" r="5.5" fill="var(--on)"/>';
+  if (st === 4) {
+    for (var a = 0; a < 6; a++) { var ang = a * Math.PI / 3; x += '<circle cx="' + (30 + 8 * Math.cos(ang)).toFixed(1) + '" cy="' + (top + 8 * Math.sin(ang)).toFixed(1) + '" r="6" fill="var(--on)"/>'; }
+    x += '<circle cx="30" cy="' + top + '" r="5" fill="var(--ink)"/>';
+  }
+  return x + '</svg>';
+}
+function avatarSVG(mood) {
+  var skin = "var(--ink)", suit = "var(--on)";
+  var arms = mood === "happy" ? '<path d="M32 40 L14 26 M32 40 L50 26" stroke="' + skin + '" stroke-width="5" stroke-linecap="round" fill="none"/>' :
+    mood === "mid" ? '<path d="M32 42 L16 48 M32 42 L48 48" stroke="' + skin + '" stroke-width="5" stroke-linecap="round" fill="none"/>' :
+    '<path d="M32 42 L20 58 M32 42 L44 58" stroke="' + skin + '" stroke-width="5" stroke-linecap="round" fill="none"/>';
+  var mouth = mood === "happy" ? '<path d="M24 22 Q32 30 40 22" stroke="' + skin + '" stroke-width="3" fill="none" stroke-linecap="round"/>' :
+    mood === "mid" ? '<line x1="25" y1="23" x2="39" y2="23" stroke="' + skin + '" stroke-width="3" stroke-linecap="round"/>' :
+    '<path d="M24 25 Q32 20 40 25" stroke="' + skin + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+  return '<svg viewBox="0 0 64 88" aria-hidden="true">' +
+    '<circle cx="32" cy="16" r="13" fill="' + skin + '"/>' +
+    '<circle cx="26" cy="15" r="2" fill="var(--bg)"/><circle cx="38" cy="15" r="2" fill="var(--bg)"/>' +
+    mouth +
+    '<rect x="18" y="30" width="28" height="34" rx="10" fill="' + suit + '"/>' +
+    arms +
+    '<path d="M24 64 L20 84 M40 64 L44 84" stroke="' + skin + '" stroke-width="6" stroke-linecap="round"/>' +
+    '</svg>';
+}
+var MILESTONES = [7, 30, 100];
+var canvas = document.getElementById("confetti-canvas"), ctx = canvas ? canvas.getContext("2d") : null;
+function sizeCanvas() { if (canvas) { canvas.width = innerWidth; canvas.height = innerHeight; } }
+sizeCanvas();
+window.addEventListener("resize", sizeCanvas);
+var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function confettiBurst(x, y) {
+  if (!ctx || reduceMotion) return;
+  var colors = ["#f2b632", "#2f7f79", "#1b2a3a", "#e0637a"], parts = [];
+  for (var i = 0; i < 26; i++) {
+    var a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 4;
+    parts.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2, g: 0.15, life: 1, size: 3 + Math.random() * 3, color: colors[i % colors.length] });
+  }
+  var start = null;
+  function frame(t) {
+    if (!start) start = t;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var alive = false;
+    parts.forEach(function (p) {
+      if (p.life <= 0) return;
+      p.x += p.vx; p.y += p.vy; p.vy += p.g; p.life -= 0.018;
+      if (p.life > 0) {
+        alive = true;
+        ctx.globalAlpha = Math.max(p.life, 0);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      }
+    });
+    ctx.globalAlpha = 1;
+    if (alive) requestAnimationFrame(frame); else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  requestAnimationFrame(frame);
+}
+var milestoneTimer = null;
+function showMilestone(text) {
+  var m = document.getElementById("milestone");
+  if (!m) return;
+  m.textContent = text;
+  m.classList.add("show");
+  clearTimeout(milestoneTimer);
+  milestoneTimer = setTimeout(function () { m.classList.remove("show"); }, 2600);
+}
+var AMBIENTS = {
+  garden: { freqs: [220, 277, 330], wave: "sine", cutoff: 900, gain: 0.05 },
+  space: { freqs: [110, 165, 196], wave: "sine", cutoff: 500, gain: 0.055 },
+  ocean: { freqs: [196, 247, 294], wave: "triangle", cutoff: 700, gain: 0.045 },
+  sunset: { freqs: [175, 220, 262], wave: "sine", cutoff: 800, gain: 0.05 }
+};
+var audioCtx = null, audioNodes = [], musicOn = false, currentAmbientGenre = "garden";
+function stopAmbient() {
+  audioNodes.forEach(function (n) { try { n.stop(); } catch (e) {} try { n.disconnect(); } catch (e) {} });
+  audioNodes = [];
+}
+function playAmbient(genreId) {
+  if (!musicOn) return;
+  if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; } }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  stopAmbient();
+  var cfg = AMBIENTS[genreId] || AMBIENTS.garden;
+  var master = audioCtx.createGain();
+  master.gain.value = 0;
+  master.connect(audioCtx.destination);
+  master.gain.linearRampToValueAtTime(cfg.gain, audioCtx.currentTime + 1.2);
+  var filter = audioCtx.createBiquadFilter();
+  filter.type = "lowpass"; filter.frequency.value = cfg.cutoff;
+  filter.connect(master);
+  cfg.freqs.forEach(function (f, i) {
+    var osc = audioCtx.createOscillator();
+    osc.type = cfg.wave; osc.frequency.value = f * (i === 1 ? 1.001 : 1);
+    var g = audioCtx.createGain(); g.gain.value = 1 / cfg.freqs.length;
+    osc.connect(g); g.connect(filter);
+    osc.start();
+    audioNodes.push(osc);
+  });
+  audioNodes.push(master, filter);
+  currentAmbientGenre = genreId;
+}
+function updateSoundBtn() {
+  var b = document.getElementById("soundBtn");
+  if (b) b.textContent = musicOn ? "🔊 Music on" : "🔈 Music off";
+}
+function toggleMusic() {
+  musicOn = !musicOn;
+  try { localStorage.setItem("streaks-music", musicOn ? "1" : "0"); } catch (e) {}
+  if (musicOn) playAmbient(currentAmbientGenre); else stopAmbient();
+  updateSoundBtn();
+}
+try { musicOn = localStorage.getItem("streaks-music") === "1"; } catch (e) {}
+var GENRES = [
+  { id: "garden", label: "🌱 Garden" },
+  { id: "space", label: "🚀 Space" },
+  { id: "ocean", label: "🌊 Ocean" },
+  { id: "sunset", label: "🌅 Sunset" }
+];
+function setGenre(id) {
+  if (id === "garden") document.documentElement.removeAttribute("data-genre");
+  else document.documentElement.setAttribute("data-genre", id);
+  try { localStorage.setItem("streaks-genre", id); } catch (e) {}
+  renderGenres(id);
+  currentAmbientGenre = id;
+  if (musicOn) playAmbient(id);
+}
+function renderGenres(active) {
+  var wrap = document.getElementById("genres");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  GENRES.forEach(function (g) {
+    var b = document.createElement("button");
+    b.className = "genre-btn" + (g.id === active ? " active" : "");
+    b.textContent = g.label;
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", g.id === active ? "true" : "false");
+    b.onclick = function () { setGenre(g.id); };
+    wrap.appendChild(b);
+  });
+}
+var savedGenre = "garden";
+try { savedGenre = localStorage.getItem("streaks-genre") || "garden"; } catch (e) {}
+setGenre(savedGenre);
+updateSoundBtn();
+document.getElementById("soundBtn").onclick = toggleMusic;
+function render() {
+  var today = keyOf(daysAgo(0));
+  document.getElementById("date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  var done = habits.filter(function (h) { return h.days[today]; }).length;
+  document.getElementById("summary").textContent = habits.length ? done + " of " + habits.length + " done today" : "";
+  document.getElementById("fill").style.width = habits.length ? (done / habits.length * 100) + "%" : "0";
+  var mood = !habits.length || done === 0 ? "idle" : done === habits.length ? "happy" : "mid";
+  var av = document.getElementById("avatar");
+  if (av) av.innerHTML = avatarSVG(mood);
+  var list = document.getElementById("list");
+  list.innerHTML = "";
+  var g = document.getElementById("garden");
+  g.innerHTML = "";
+  habits.forEach(function (h) {
+    var s = streak(h), st = stageOf(s), plot = document.createElement("div");
+    plot.className = "plot";
+    plot.innerHTML = plant(s);
+    var n = document.createElement("b"); n.textContent = h.name;
+    var sm = document.createElement("small");
+    sm.textContent = st === 4 ? NAMES[4] : (STAGES[st] - s) + (STAGES[st] - s === 1 ? " day" : " days") + " to " + WORDS[st];
+    plot.appendChild(n); plot.appendChild(sm); g.appendChild(plot);
+  });
+  if (!habits.length) {
+    var p = document.createElement("p");
+    p.className = "empty";
+    p.textContent = "No habits yet. Add one below to start your first streak.";
+    list.appendChild(p);
+    return;
+  }
+  habits.forEach(function (h) {
+    var card = document.createElement("div"); card.className = "habit";
+    var top = document.createElement("div"); top.className = "top";
+    var nm = document.createElement("span"); nm.className = "name"; nm.textContent = h.name;
+    var s = streak(h), st = document.createElement("span");
+    st.className = "streak" + (s ? "" : " zero");
+    st.textContent = s ? s + "-day streak" : "No streak yet";
+    top.appendChild(nm); top.appendChild(st); card.appendChild(top);
+    var best = Math.max(h.best || 0, s);
+    if (best > 0) {
+      var bl = document.createElement("span"); bl.className = "best";
+      bl.textContent = "Best: " + best + (best === 1 ? " day" : " days");
+      card.appendChild(bl);
+    }
+    var week = document.createElement("div"); week.className = "week";
+    for (var i = 6; i >= 0; i--) {
+      var d = daysAgo(i), k = keyOf(d);
+      var b = document.createElement("button");
+      b.className = "day" + (i === 0 ? " today" : "") + (h.days[k] ? " done" : "");
+      b.setAttribute("aria-pressed", h.days[k] ? "true" : "false");
+      b.setAttribute("aria-label", h.name + ", " + d.toLocaleDateString(undefined, { weekday: "long" }));
+      var dot = document.createElement("span"); dot.className = "dot";
+      var lab = document.createElement("span"); lab.textContent = i === 0 ? "Today" : d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 3);
+      b.appendChild(dot); b.appendChild(lab);
+      b.onclick = (function (h, k, btn) { return function () {
+        var wasDone = !!h.days[k];
+        if (wasDone) { delete h.days[k]; }
+        else {
+          h.days[k] = 1;
+          var rect = btn.getBoundingClientRect();
+          confettiBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+          var s = streak(h);
+          h.best = Math.max(h.best || 0, s);
+          if (MILESTONES.indexOf(s) !== -1) showMilestone(h.name + ": " + s + "-day streak! Keep it up.");
+        }
+        save(); render();
+      }; })(h, k, b);
+      week.appendChild(b);
+    }
+    card.appendChild(week);
+    var del = document.createElement("button"); del.className = "del" + (armed === h.id ? " sure" : "");
+    del.textContent = armed === h.id ? "Tap again to delete" : "Delete habit";
+    del.onclick = (function (h) { return function () {
+      if (armed === h.id) { habits = habits.filter(function (x) { return x.id !== h.id; }); armed = null; save(); }
+      else armed = h.id;
+      render();
+    }; })(h);
+    card.appendChild(del);
+    list.appendChild(card);
+  });
+}
+function addHabit() {
+  var inp = document.getElementById("new"), v = inp.value.trim();
+  if (!v) { inp.focus(); return; }
+  habits.push({ id: Date.now().toString(36), name: v, days: {} });
+  inp.value = ""; save(); render();
+}
+document.getElementById("addBtn").onclick = addHabit;
+document.getElementById("new").addEventListener("keydown", function (e) { if (e.key === "Enter") addHabit(); });
+render();
+</script>
+</body>
+</html>
